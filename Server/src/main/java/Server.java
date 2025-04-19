@@ -18,10 +18,10 @@ public class Server{
 	int count = 1;	
 	ArrayList<ClientThread> clients = new ArrayList<ClientThread>();
 	TheServer server;
-	private Consumer<Serializable> callback;
+	private Consumer<Message> callback;
 	
 	
-	Server(Consumer<Serializable> call){
+	Server(Consumer<Message> call){
 	
 		callback = call;
 		server = new TheServer();
@@ -40,7 +40,7 @@ public class Server{
 		    while(true) {
 		
 				ClientThread c = new ClientThread(mysocket.accept(), count);
-				callback.accept("client has connected to server: " + "client #" + count);
+				callback.accept(new Message(count,true));
 				clients.add(c);
 				c.start();
 				
@@ -49,7 +49,7 @@ public class Server{
 			    }
 			}//end of try
 				catch(Exception e) {
-					callback.accept("Server socket did not launch");
+					callback.accept(new Message("Server did not launch"));
 				}
 			}//end of while
 		}
@@ -68,14 +68,41 @@ public class Server{
 				this.count = count;	
 			}
 			
-			public void updateClients(String message) {
-				for(int i = 0; i < clients.size(); i++) {
-					ClientThread t = clients.get(i);
-					try {
-					 t.out.writeObject(message);
-					}
-					catch(Exception e) {}
+			public void updateClients(Message message) {
+				switch(message.type){
+					case TEXT:
+						for(ClientThread t: clients){
+							if(message.recipient==-1 || message.recipient==t.count ) {
+								try {
+									t.out.writeObject(message);
+								} catch (Exception e) {
+									System.err.println("New User Error");
+								}
+							}
+						}
+					break;
+					case NEWUSER:
+						for(ClientThread t : clients) {
+							if(this != t) {
+								try {
+									t.out.writeObject(message);
+								} catch (Exception e) {
+									System.err.println("New User Error");
+								}
+							}
+						}
+					break;
+					case DISCONNECT:
+						for(ClientThread t : clients) {
+							try {
+								t.out.writeObject(message);
+							} catch (Exception e) {
+								System.err.println("New User Error");
+							}
+						}
+
 				}
+
 			}
 			
 			public void run(){
@@ -89,18 +116,19 @@ public class Server{
 					System.out.println("Streams not open");
 				}
 				
-				updateClients("new client on server: client #"+count);
+				updateClients(new Message(count,true));
 					
 				 while(true) {
 					    try {
-					    	String data = in.readObject().toString();
-					    	callback.accept("client: " + count + " sent: " + data);
-					    	updateClients("client #"+count+" said: "+data);
-					    	
-					    	}
+					    	Message data = (Message) in.readObject();
+					    	callback.accept(data);
+							updateClients(data);
+						}
 					    catch(Exception e) {
-					    	callback.accept("OOOOPPs...Something wrong with the socket from client: " + count + "....closing down!");
-					    	updateClients("Client #"+count+" has left the server!");
+							e.printStackTrace();
+							Message discon = new Message(count, false);
+					    	callback.accept(discon);
+					    	updateClients(discon);
 					    	clients.remove(this);
 					    	break;
 					    }

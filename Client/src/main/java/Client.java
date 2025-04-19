@@ -15,9 +15,9 @@ public class Client extends Thread{
 	ObjectOutputStream out;
 	ObjectInputStream in;
 	
-	private Consumer<Serializable> callback;
+	private Consumer<Message> callback;
 	
-	Client(Consumer<Serializable> call){
+	Client(Consumer<Message> call){
 	
 		callback = call;
 	}
@@ -35,7 +35,7 @@ public class Client extends Thread{
 		while(true) {
 			 
 			try {
-			String message = in.readObject().toString();
+			Message message = (Message) in.readObject();
 			callback.accept(message);
 			}
 			catch(Exception e) {}
@@ -43,7 +43,7 @@ public class Client extends Thread{
 	
     }
 	
-	public void send(String data) {
+	public void send(Message data) {
 		
 		try {
 			out.writeObject(data);
