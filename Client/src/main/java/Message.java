@@ -1,33 +1,30 @@
 import java.io.Serializable;
+import java.util.List;
 
 public class Message implements Serializable {
-    static final long serialVersionUID = 42L;
+    private static final long serialVersionUID = 42L;
+
     MessageType type;
-    String message;
-    int recipient;
+    String sender;
+    String content;
+    List<String> userList;
 
-    public Message(int i, boolean connect){
-        if(connect) {
-            type = MessageType.NEWUSER;
-            message = "User "+i+" has joined!";
-            recipient = i;
-        } else {
-            type = MessageType.DISCONNECT;
-            message = "User "+i+" has disconnected!";
-            recipient = i;
-        }
+    // For username validation
+    public Message(MessageType type, String sender) {
+        this.type = type;
+        this.sender = sender;
     }
 
-    public Message(String mess){
-        type = MessageType.TEXT;
-        message = mess;
-        recipient = -1;
+    // For user list updates
+    public Message(MessageType type, List<String> userList) {
+        this.type = type;
+        this.userList = userList;
     }
 
-    public Message(int rec, String mess){
-        type = MessageType.TEXT;
-        message = mess;
-        recipient = rec;
+    // For error messages
+    public Message(MessageType type, String sender, String content) {
+        this.type = type;
+        this.sender = sender;
+        this.content = content;
     }
 }
-

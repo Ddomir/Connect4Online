@@ -1,94 +1,86 @@
-
-import java.util.HashMap;
-
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 
-public class GuiClient extends Application{
-
-	
-	TextField c1;
-	Button b1;
-	HashMap<String, Scene> sceneMap;
-	VBox clientBox;
+public class GuiClient extends Application {
+	private VBox loginScreen;
+	private VBox mainScreen;
+	private ListView<String> userListView;
+	private String username;
 	Client clientConnection;
 
-	HBox fields;
-
-	ComboBox<Integer> listUsers;
-	ListView<String> listItems;
-
-	
-	
+	// Add main method
 	public static void main(String[] args) {
 		launch(args);
 	}
 
 	@Override
-	public void start(Stage primaryStage) throws Exception {
-		clientConnection = new Client(data->{
-				Platform.runLater(()->{
-					switch (data.type){
-						case NEWUSER:
-							listUsers.getItems().add(data.recipient);
-							listItems.getItems().add(data.recipient + " has joined!");
-							break;
-						case DISCONNECT:
-							listUsers.getItems().remove(data.recipient);
-							listItems.getItems().add(data.recipient + " has disconnected!");
-							break;
-						case TEXT:
-							listItems.getItems().add(data.recipient+": "+data.message);
-					}
+	public void start(Stage primaryStage) {
+		// Login Screen
+		TextField usernameField = new TextField();
+		Button submitBtn = new Button("Login");
+		Label errorLabel = new Label();
+
+		submitBtn.setOnAction(e -> {
+			username = usernameField.getText().trim();
+			if(username.isEmpty()) {
+				errorLabel.setText("Username cannot be empty!");
+				return;
+			}
+
+			if(clientConnection.isConnected()) {
+				clientConnection.send(new Message(MessageType.USERNAME_VALIDATION, username));
+			} else {
+				errorLabel.setText("Not connected to server!");
+			}
+		});
+
+		loginScreen = new VBox(10, usernameField, submitBtn, errorLabel);
+
+		// Main Screen
+		userListView = new ListView<>();
+		mainScreen = new VBox(userListView);
+		mainScreen.setVisible(false);
+
+		StackPane root = new StackPane(loginScreen, mainScreen);
+
+		clientConnection = new Client(data -> {
+			Platform.runLater(() -> {
+				switch(data.type) {
+					case CONNECTION_SUCCESS:
+						submitBtn.setDisable(false);
+						errorLabel.setText("Connected!");
+						break;
+					case USERNAME_ACCEPTED:
+						loginScreen.setVisible(false);
+						mainScreen.setVisible(true);
+						break;
+					case ERROR:
+						errorLabel.setText(data.content);
+						submitBtn.setDisable(false);
+						break;
+					case USERNAME_TAKEN:
+						errorLabel.setText("Username taken!");
+						break;
+					case USER_LIST:
+						userListView.getItems().setAll(data.userList);
+						break;
+				}
 			});
 		});
-							
 		clientConnection.start();
+		submitBtn.setDisable(true);
+		errorLabel.setText("Connecting to server...");
 
-		listUsers = new ComboBox<Integer>();
-		listUsers.getItems().add(-1);
-		listUsers.setValue(-1);
-		listItems = new ListView<String>();
-
-		
-		c1 = new TextField();
-		b1 = new Button("Send");
-		fields = new HBox(listUsers,b1);
-		b1.setOnAction(e->{clientConnection.send(new Message(listUsers.getValue(), c1.getText())); c1.clear();});
-
-		clientBox = new VBox(10, c1,fields,listItems);
-		clientBox.setStyle("-fx-background-color: blue;"+"-fx-font-family: 'serif';");
-
-
-
-		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent t) {
-                Platform.exit();
-                System.exit(0);
-            }
-        });
-
-
-		primaryStage.setScene(new Scene(clientBox, 400, 300));
-		primaryStage.setTitle("Client");
+		primaryStage.setScene(new Scene(root, 300, 400));
+		primaryStage.setTitle("Connect4 Client");
 		primaryStage.show();
-		
 	}
-	
-
-
 }
