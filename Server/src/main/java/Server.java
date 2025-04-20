@@ -1,119 +1,162 @@
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class Server {
-
-    ArrayList<ClientThread> clients = new ArrayList<>();
-    List<String> connectedUsers = new ArrayList<>();
-    TheServer server;
+public class Server implements Runnable {
     private final Consumer<Message> callback;
+    private final Map<String, ClientHandler> clients = new ConcurrentHashMap<>();
+    private final Map<String, Room> rooms = new ConcurrentHashMap<>();
 
-    Server(Consumer<Message> call) {
-        callback = call;
-        server = new TheServer();
-        server.start();
+    public Server(Consumer<Message> callback) {
+        this.callback = callback;
     }
 
-    public class TheServer extends Thread {
+    @Override
+    public void run() {
+        try (ServerSocket serverSocket = new ServerSocket(5555)) {
+            while (true) {
+                Socket socket = serverSocket.accept();
+                new ClientHandler(socket).start();
+            }
+        } catch (IOException e) {
+            callback.accept(new Message(Message.Type.CONNECT_ERROR, "Server", e.getMessage()));
+        }
+    }
+
+    private class ClientHandler extends Thread {
+        private final Socket socket;
+        private ObjectOutputStream out;
+        private String username;
+
+        public ClientHandler(Socket socket) {
+            this.socket = socket;
+        }
+
         public void run() {
-            try (ServerSocket mysocket = new ServerSocket(5555)) {
-                System.out.println("Server is waiting for a client!");
+            try (ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+                out = new ObjectOutputStream(socket.getOutputStream());
+                socket.setTcpNoDelay(true);
 
                 while (true) {
-                    ClientThread c = new ClientThread(mysocket.accept());
-                    clients.add(c);
-                    c.start();
+                    Message msg = (Message) in.readObject();
+                    handleMessage(msg);
                 }
             } catch (Exception e) {
-                callback.accept(new Message(MessageType.ERROR, "Server", "Server failed to launch"));
+                disconnect();
             }
+        }
+
+        private void handleMessage(Message msg) {
+            switch (msg.getType()) {
+                case AUTH_REQUEST:
+                    handleAuth(msg);
+                    break;
+                case ROOM_CREATE:
+                    createRoom(this);
+                    break;
+                case ROOM_JOIN:
+                    joinRoom(msg.getString());
+                    break;
+                case ROOM_LIST:
+                    List<String> roomList = new ArrayList<>(rooms.keySet());
+                    send(new Message(Message.Type.ROOM_LIST, "System", roomList));
+                    break;
+                case DISCONNECT:
+                    disconnect();
+                    break;
+            }
+        }
+
+        private void handleAuth(Message msg) {
+            String requestedUser = msg.getSender();
+            if (clients.containsKey(requestedUser)) {
+                send(new Message(Message.Type.AUTH_ERROR, "System", "Username taken"));
+            } else {
+                username = requestedUser;
+                clients.put(username, this);
+                send(new Message(Message.Type.AUTH_SUCCESS));
+                broadcastPlayerList();
+            }
+        }
+
+        private void createRoom(ClientHandler creator) {
+            String roomId = creator.username + "'s Room";
+            Room room = new Room(roomId, creator);
+            rooms.put(roomId, room);
+            log("Room created: " + roomId);
+            creator.send(new Message(Message.Type.ROOM_UPDATE, "System", "WAITING"));
+            broadcastRoomList();
+        }
+
+        private void joinRoom(String roomId) {
+            Room room = rooms.get(roomId);
+            if (room != null && room.join(this)) {
+                log(roomId + " - Game started");
+                rooms.remove(roomId);
+                broadcastRoomList();
+                room.startGame();
+            } else {
+                send(new Message(Message.Type.ROOM_UPDATE, "System", "JOIN_ERROR"));
+            }
+        }
+
+        private void disconnect() {
+            if (username != null) {
+                clients.remove(username);
+                broadcastPlayerList();
+            }
+            try { socket.close(); } catch (IOException ignored) {}
+        }
+
+        private void send(Message msg) {
+            try {
+                out.writeObject(msg);
+                out.flush();
+            } catch (IOException e) {
+                disconnect();
+            }
+        }
+
+        private void log(String message) {
+            callback.accept(new Message(Message.Type.SERVER_LOG, "Server", message));
         }
     }
 
-    class ClientThread extends Thread {
-        Socket connection;
-        ObjectInputStream in;
-        ObjectOutputStream out;
-        String username;
-        boolean authenticated = false;
+    private class Room {
+        private final String id;
+        private final ClientHandler host;
+        private ClientHandler guest;
 
-        ClientThread(Socket s) {
-            this.connection = s;
+        public Room(String id, ClientHandler host) {
+            this.id = id;
+            this.host = host;
         }
 
-        private void broadcastUserList() {
-            Message userListMsg = new Message(MessageType.USER_LIST, connectedUsers);
-            for (ClientThread t : clients) {
-                try {
-                    t.out.writeObject(userListMsg);
-                } catch (Exception e) {
-                    System.err.println("Error sending user list");
-                }
+        public synchronized boolean join(ClientHandler client) {
+            if (guest == null && client != host) {
+                guest = client;
+                return true;
             }
+            return false;
         }
 
-        public void run() {
-            try {
-                out = new ObjectOutputStream(connection.getOutputStream());
-                in = new ObjectInputStream(connection.getInputStream());
-                connection.setTcpNoDelay(true);
-
-                // Username validation loop
-                while (!authenticated && !connection.isClosed()) {
-                    Message validationMessage = (Message) in.readObject();
-
-                    if (validationMessage.type == MessageType.USERNAME_VALIDATION) {
-                        String requestedUsername = validationMessage.sender;
-
-                        if (connectedUsers.contains(requestedUsername)) {
-                            // Send rejection
-                            out.writeObject(new Message(MessageType.USERNAME_TAKEN, "System", "Username '" + requestedUsername + "' is taken. Try another."));
-                            out.flush();
-                        } else {
-                            // Accept username
-                            username = requestedUsername;
-                            connectedUsers.add(username);
-                            authenticated = true;
-
-                            out.writeObject(new Message(MessageType.USERNAME_ACCEPTED, "System", "Welcome " + username + "!"));
-                            broadcastUserList();
-                            callback.accept(new Message(MessageType.CONNECT, username, "User connected"));
-                        }
-                    }
-                }
-
-                // Main message loop
-                while (authenticated) {
-                    Message data = (Message) in.readObject();
-                    callback.accept(data);
-
-                    switch (data.type) {
-                        case DISCONNECT:
-                            throw new Exception("disconnect ohh nooooo");
-                    }
-                }
-
-            } catch (Exception e) {
-                // Handle disconnection
-                if (authenticated) {
-                    connectedUsers.remove(username);
-                    broadcastUserList();
-                    callback.accept(new Message(MessageType.DISCONNECT, username, "User disconnected"));
-                }
-                clients.remove(this);
-            } finally {
-                try {
-                    connection.close();
-                } catch (IOException e) {
-                    System.out.println("Error closing connection: " + e.getMessage());
-                }
-            }
+        public void startGame() {
+            host.send(new Message(Message.Type.GAME_START, "System", guest.username));
+            guest.send(new Message(Message.Type.GAME_START, "System", host.username));
         }
+    }
+
+    private void broadcastPlayerList() {
+        List<String> players = new ArrayList<>(clients.keySet());
+        Message msg = new Message(Message.Type.PLAYER_UPDATE, "System", players);
+        clients.values().forEach(c -> c.send(msg));
+    }
+
+    private void broadcastRoomList() {
+        List<String> roomList = new ArrayList<>(rooms.keySet());
+        Message msg = new Message(Message.Type.ROOM_LIST, "System", roomList);
+        clients.values().forEach(c -> c.send(msg));
     }
 }

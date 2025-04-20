@@ -4,27 +4,40 @@ import java.util.List;
 public class Message implements Serializable {
     private static final long serialVersionUID = 42L;
 
-    MessageType type;
-    String sender;
-    String content;
-    List<String> userList;
+    public enum Type {
+        // Connection
+        CONNECT_REQUEST, CONNECT_SUCCESS, CONNECT_ERROR,
+        // Authentication
+        AUTH_REQUEST, AUTH_SUCCESS, AUTH_ERROR,
+        // Rooms
+        ROOM_CREATE, ROOM_LIST, ROOM_JOIN, ROOM_UPDATE,
+        // Game
+        GAME_START, GAME_MOVE, GAME_END,
+        // System
+        PLAYER_UPDATE, DISCONNECT, SERVER_LOG
+    }
 
-    // For username validation
-    public Message(MessageType type, String sender) {
+    private final Type type;
+    private final String sender;
+    private final Object data;
+
+    public Message(Type type) {
+        this(type, "System", null);
+    }
+
+    public Message(Type type, String sender) {
+        this(type, sender, null);
+    }
+
+    public Message(Type type, String sender, Object data) {
         this.type = type;
         this.sender = sender;
+        this.data = data;
     }
 
-    // For user list updates
-    public Message(MessageType type, List<String> userList) {
-        this.type = type;
-        this.userList = userList;
-    }
-
-    // For error messages
-    public Message(MessageType type, String sender, String content) {
-        this.type = type;
-        this.sender = sender;
-        this.content = content;
-    }
+    public Type getType() { return type; }
+    public String getSender() { return sender; }
+    public String getString() { return (String) data; }
+    public List<String> getList() { return (List<String>) data; }
+    public Boolean getBoolean() { return (Boolean) data; }
 }

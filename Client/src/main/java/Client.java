@@ -1,73 +1,55 @@
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 import java.util.function.Consumer;
-import javafx.application.Platform;
 
 public class Client extends Thread {
-	private Socket socketClient;
-	private ObjectOutputStream out;
-	private ObjectInputStream in;
 	private final Consumer<Message> callback;
-	private boolean isConnected = false;
+	private Socket socket;
+	private ObjectOutputStream out;
+	private String username;
 
-    Client(Consumer<Message> call) {
-		callback = call;
+	public Client(Consumer<Message> callback) {
+		this.callback = callback;
 	}
 
 	public void run() {
 		try {
-			socketClient = new Socket("127.0.0.1", 5555);
-			out = new ObjectOutputStream(socketClient.getOutputStream());
-			in = new ObjectInputStream(socketClient.getInputStream());
-			socketClient.setTcpNoDelay(true);
-			isConnected = true;
+			socket = new Socket("localhost", 5555);
+			out = new ObjectOutputStream(socket.getOutputStream());
+			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+			socket.setTcpNoDelay(true);
+			System.out.println("Connected successfully");
 
-			Platform.runLater(() -> callback.accept(
-					new Message(MessageType.CONNECTION_SUCCESS, "System", "Connected to server")
-			));
-
-			while(isConnected) {
-				try {
-					Message message = (Message) in.readObject();
-					callback.accept(message);
-				} catch(Exception e) {
-					closeConnection();
-				}
+			while (true) {
+				Message msg = (Message) in.readObject();
+				System.out.println("Received: " + msg.getType());
+				callback.accept(msg);
 			}
-		} catch(Exception e) {
-			closeConnection();
-            Platform.runLater(() -> callback.accept(
-                    new Message(MessageType.ERROR, "System", "Connection failed: " + e.getMessage())
-            ));
-        }
-	}
-
-
-	public void send(Message data) {
-		if(out != null) {
-			try {
-				out.writeObject(data);
-				out.flush();
-			} catch (IOException e) {
-				closeConnection();
-			}
+		} catch (Exception e) {
+			System.err.println("Error: " + e.getMessage());
+			callback.accept(new Message(Message.Type.CONNECT_ERROR, "System", e.getMessage()));
 		}
 	}
 
-	private void closeConnection() {
-		isConnected = false;
+	public void send(Message msg) {
 		try {
-			if(socketClient != null) socketClient.close();
-			if(in != null) in.close();
-			if(out != null) out.close();
+			out.writeObject(msg);
+			out.flush();
 		} catch (IOException e) {
-			System.err.println("Error closing connection");
+			callback.accept(new Message(Message.Type.CONNECT_ERROR, "System", "Connection lost"));
 		}
 	}
 
-	public boolean isConnected() {
-		return isConnected;
+	public void authenticate(String username) {
+		this.username = username;
+		send(new Message(Message.Type.AUTH_REQUEST, username));
+	}
+
+	public void createRoom() {
+		send(new Message(Message.Type.ROOM_CREATE, username));
+	}
+
+	public void joinRoom(String roomId) {
+		send(new Message(Message.Type.ROOM_JOIN, username, roomId));
 	}
 }

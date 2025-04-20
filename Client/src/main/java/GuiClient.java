@@ -1,86 +1,140 @@
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-public class GuiClient extends Application {
-	private VBox loginScreen;
-	private VBox mainScreen;
-	private ListView<String> userListView;
-	private String username;
-	Client clientConnection;
+import java.util.List;
 
-	// Add main method
+public class GuiClient extends Application {
+	private Client client;
+	private String username;
+
+	private VBox loginScreen;
+	private VBox lobbyScreen;
+	private VBox gameScreen;
+	private ListView<String> roomList;
+	private TextField roomField;
+	private Label statusLabel, gameLabel;
+	private Button cancelBtn;
+
 	public static void main(String[] args) {
 		launch(args);
 	}
 
 	@Override
-	public void start(Stage primaryStage) {
-		// Login Screen
-		TextField usernameField = new TextField();
-		Button submitBtn = new Button("Login");
-		Label errorLabel = new Label();
+	public void start(Stage stage) {
+		setupLoginScreen();
+		setupLobbyScreen();
+		setupGameScreen();
 
-		submitBtn.setOnAction(e -> {
-			username = usernameField.getText().trim();
-			if(username.isEmpty()) {
-				errorLabel.setText("Username cannot be empty!");
-				return;
-			}
+		StackPane root = new StackPane(loginScreen, lobbyScreen, gameScreen);
+		stage.setScene(new Scene(root, 400, 400));
+		stage.show();
 
-			if(clientConnection.isConnected()) {
-				clientConnection.send(new Message(MessageType.USERNAME_VALIDATION, username));
+		connectToServer();
+	}
+
+	private void connectToServer() {
+		client = new Client(this::handleMessage);
+		client.start();
+	}
+
+	private void setupLoginScreen() {
+		TextField userField = new TextField();
+		Button loginBtn = new Button("Login");
+		statusLabel = new Label();
+
+		loginBtn.setOnAction(e -> {
+			username = userField.getText();
+			client.authenticate(username);
+		});
+
+		loginScreen = new VBox(10, userField, loginBtn, statusLabel);
+	}
+
+	private void setupLobbyScreen() {
+		roomList = new ListView<>();
+		Button createBtn = new Button("Create Room");
+		Button joinBtn = new Button("Join Room");
+		Button refreshBtn = new Button("Refresh");
+
+		createBtn.setOnAction(e -> client.createRoom());
+		joinBtn.setOnAction(e -> {
+			String selectedRoom = roomList.getSelectionModel().getSelectedItem();
+			if (selectedRoom != null) {
+				client.joinRoom(selectedRoom);
 			} else {
-				errorLabel.setText("Not connected to server!");
+				statusLabel.setText("Error: Select a room to join");
 			}
 		});
+		refreshBtn.setOnAction(e -> client.send(new Message(Message.Type.ROOM_LIST)));
 
-		loginScreen = new VBox(10, usernameField, submitBtn, errorLabel);
+		lobbyScreen = new VBox(10, roomList, new HBox(10, createBtn, joinBtn, refreshBtn));
+		lobbyScreen.setVisible(false);
+	}
 
-		// Main Screen
-		userListView = new ListView<>();
-		mainScreen = new VBox(userListView);
-		mainScreen.setVisible(false);
-
-		StackPane root = new StackPane(loginScreen, mainScreen);
-
-		clientConnection = new Client(data -> {
-			Platform.runLater(() -> {
-				switch(data.type) {
-					case CONNECTION_SUCCESS:
-						submitBtn.setDisable(false);
-						errorLabel.setText("Connected!");
-						break;
-					case USERNAME_ACCEPTED:
-						loginScreen.setVisible(false);
-						mainScreen.setVisible(true);
-						break;
-					case ERROR:
-						errorLabel.setText(data.content);
-						submitBtn.setDisable(false);
-						break;
-					case USERNAME_TAKEN:
-						errorLabel.setText("Username taken!");
-						break;
-					case USER_LIST:
-						userListView.getItems().setAll(data.userList);
-						break;
-				}
-			});
+	private void setupGameScreen() {
+		gameLabel = new Label("Waiting");
+		cancelBtn = new Button("Cancel");
+		cancelBtn.setOnAction(e -> {
+			client.send(new Message(Message.Type.ROOM_CANCEL, username));
 		});
-		clientConnection.start();
-		submitBtn.setDisable(true);
-		errorLabel.setText("Connecting to server...");
+		gameScreen = new VBox(10, gameLabel, cancelBtn);
+		gameScreen.setVisible(false);
+	}
 
-		primaryStage.setScene(new Scene(root, 300, 400));
-		primaryStage.setTitle("Connect4 Client");
-		primaryStage.show();
+	private void showLobby() {
+		loginScreen.setVisible(false);
+		lobbyScreen.setVisible(true);
+		client.send(new Message(Message.Type.ROOM_LIST));
+	}
+
+	private void updateRoomList(List<String> rooms) {
+		roomList.getItems().setAll(rooms);
+	}
+
+	private void showGameScreen(String message, boolean waiting) {
+		loginScreen.setVisible(false);
+		lobbyScreen.setVisible(false);
+		gameScreen.setVisible(true);
+		gameLabel.setText(message);
+		cancelBtn.setVisible(waiting);
+	}
+
+
+	private void handleMessage(Message msg) {
+		System.out.println("Handling message: " + msg.getType());
+		Platform.runLater(() -> {
+			switch (msg.getType()) {
+				case AUTH_SUCCESS:
+					showLobby();
+					statusLabel.setText("Login successful");
+					break;
+				case CONNECT_ERROR:
+					statusLabel.setText("Connection error: " + msg.getString());
+					break;
+				case AUTH_ERROR:
+					statusLabel.setText("Login failed: " + msg.getString());
+					break;
+				case ROOM_LIST:
+					updateRoomList(msg.getList());
+					break;
+				case ROOM_UPDATE:
+					if (msg.getString().equals("WAITING")) {
+						showGameScreen("Waiting for another player...", true);
+					} else if (msg.getString().equals("CANCELLED")) {
+						showLobby();
+					}
+					break;
+				case GAME_START:
+					String opponent = msg.getString();
+					showGameScreen("Game started: " + username + " vs " + opponent, false);
+					break;
+				default:
+					statusLabel.setText("Unhandled message: " + msg.getType());
+			}
+		});
 	}
 }

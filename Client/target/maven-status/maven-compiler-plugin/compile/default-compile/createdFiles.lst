@@ -2,4 +2,5 @@ Message.class
 Client.class
 MessageType.class
 GuiClient$1.class
+Message$Type.class
 GuiClient.class
