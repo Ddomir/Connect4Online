@@ -53,6 +53,7 @@ public class Server implements Runnable {
             switch (msg.getType()) {
                 case AUTH_REQUEST:
                     handleAuth(msg);
+                    log("User joined: " + msg.getSender());
                     break;
                 case ROOM_CREATE:
                     createRoom(this);
@@ -64,8 +65,26 @@ public class Server implements Runnable {
                     List<String> roomList = new ArrayList<>(rooms.keySet());
                     send(new Message(Message.Type.ROOM_LIST, "System", roomList));
                     break;
+                case ROOM_CANCEL:
+                    Room roomToCancel = null;
+                    for (Map.Entry<String, Room> entry : rooms.entrySet()) {
+                        if (entry.getValue().host == this) {
+                            roomToCancel = entry.getValue();
+                            break;
+                        }
+                    }
+                    if (roomToCancel != null) {
+                        rooms.remove(roomToCancel.id);
+                        broadcastRoomList();
+                        send(new Message(Message.Type.ROOM_UPDATE, "System", "CANCELLED"));
+                        log("Room cancelled: " + roomToCancel.id);
+                    } else {
+                        send(new Message(Message.Type.ROOM_UPDATE, "System", "NO_ROOM_TO_CANCEL"));
+                    }
+                    break;
                 case DISCONNECT:
                     disconnect();
+                    log("User disconnected: " + msg.getSender());
                     break;
                 case CHAT_SEND:
                     if (currentRoom != null) {

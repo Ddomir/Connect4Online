@@ -82,7 +82,6 @@ public class GuiClient extends Application {
 		cancelBtn.setOnAction(e -> {
 			client.send(new Message(Message.Type.ROOM_CANCEL, username));
 		});
-
 		chatList = new ListView<>();
 		chatMessageField = new TextField();
 		sendChatBtn = new Button("Send Chat");
@@ -91,7 +90,6 @@ public class GuiClient extends Application {
 			if (!message.isEmpty()) {
 				client.send(new Message(Message.Type.CHAT_SEND, username, message));
 				chatMessageField.clear();
-				System.out.println(username + " sent: " + message);
 			}
 		});
 
@@ -110,6 +108,7 @@ public class GuiClient extends Application {
 
 	private void showLobby() {
 		loginScreen.setVisible(false);
+		gameScreen.setVisible(false);
 		lobbyScreen.setVisible(true);
 		client.send(new Message(Message.Type.ROOM_LIST));
 	}
@@ -148,7 +147,12 @@ public class GuiClient extends Application {
 					if (msg.getString().equals("WAITING")) {
 						showGameScreen("Waiting for another player...", true);
 					} else if (msg.getString().equals("CANCELLED")) {
+
 						showLobby();
+						statusLabel.setText("Room cancelled successfully");
+
+					} else if (msg.getString().equals("NO_ROOM_TO_CANCEL")) {
+						statusLabel.setText("You don’t have a room to cancel");
 					}
 					break;
 				case GAME_START:

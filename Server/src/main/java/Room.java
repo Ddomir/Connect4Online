@@ -2,11 +2,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Room {
+    
     final Server.ClientHandler host;
+    public String id;
     private Server.ClientHandler guest;
     private List<String> chatHistory = new ArrayList<>(); // Optional: store chat history
 
     public Room(String id, Server.ClientHandler host) {
+        this.id = id;
         this.host = host;
     }
 
