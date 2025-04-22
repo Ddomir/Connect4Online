@@ -1,5 +1,7 @@
-Message.class
 Client.class
+GuiClient.class
+GameBoard.class
+Message.class
 GuiClient$1.class
 Message$Type.class
-GuiClient.class
+GameMoveData.class

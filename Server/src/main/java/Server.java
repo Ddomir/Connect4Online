@@ -83,8 +83,8 @@ public class Server implements Runnable {
                     }
                     break;
                 case DISCONNECT:
-                    disconnect();
                     log("User disconnected: " + msg.getSender());
+                    disconnect();
                     break;
                 case CHAT_SEND:
                     if (currentRoom != null) {
@@ -94,7 +94,12 @@ public class Server implements Runnable {
                         send(new Message(Message.Type.CHAT_ERROR, "System", "Not in a room"));
                     }
                     break;
-
+                case GAME_MOVE:
+                    if (currentRoom != null) {
+                        GameMoveData moveData = (GameMoveData) msg.getData();
+                        currentRoom.handleGameMove(moveData.getColumn(), this);
+                    }
+                    break;
             }
         }
 

@@ -29,7 +29,6 @@ public class GuiServer extends Application {
                 }
             });
         });
-        // Start the server in a separate thread
         new Thread(server).start();
 
         Label title = new Label("Server");

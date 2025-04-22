@@ -41,5 +41,5 @@ public class Message implements Serializable {
     public String getSender() { return sender; }
     public String getString() { return (String) data; }
     public List<String> getList() { return (List<String>) data; }
-    public Boolean getBoolean() { return (Boolean) data; }
+    public Object getData() { return data; }
 }

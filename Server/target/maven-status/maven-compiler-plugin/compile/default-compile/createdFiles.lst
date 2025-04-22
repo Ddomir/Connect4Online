@@ -1,8 +1,10 @@
 GuiServer.class
+GameLogic.class
 Room.class
 Server$1.class
 Server.class
 Message.class
 GuiServer$1.class
 Message$Type.class
+GameMoveData.class
 Server$ClientHandler.class
