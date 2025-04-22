@@ -1,6 +1,7 @@
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -31,7 +32,9 @@ public class GuiServer extends Application {
         // Start the server in a separate thread
         new Thread(server).start();
 
-        VBox root = new VBox(logView);
+        Label title = new Label("Server");
+
+        VBox root = new VBox(title, logView);
         stage.setScene(new Scene(root, 400, 400));
         stage.setTitle("Server Console");
         stage.show();

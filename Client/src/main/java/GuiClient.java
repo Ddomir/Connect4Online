@@ -4,20 +4,21 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
+import sun.awt.NullComponentPeer;
 
 import java.util.List;
 
 public class GuiClient extends Application {
 	private Client client;
 	private String username;
-
 	private VBox loginScreen;
 	private VBox lobbyScreen;
 	private VBox gameScreen;
-	private ListView<String> roomList;
-	private TextField roomField;
+	private ListView<String> roomList, chatList;
+	private TextField roomField, chatMessageField;
 	private Label statusLabel, gameLabel;
-	private Button cancelBtn;
+	private Button cancelBtn, sendChatBtn;
+	private HBox mainContent;
 
 	public static void main(String[] args) {
 		launch(args);
@@ -81,8 +82,30 @@ public class GuiClient extends Application {
 		cancelBtn.setOnAction(e -> {
 			client.send(new Message(Message.Type.ROOM_CANCEL, username));
 		});
-		gameScreen = new VBox(10, gameLabel, cancelBtn);
+
+		chatList = new ListView<>();
+		chatMessageField = new TextField();
+		sendChatBtn = new Button("Send Chat");
+		sendChatBtn.setOnAction(e -> {
+			String message = chatMessageField.getText();
+			if (!message.isEmpty()) {
+				client.send(new Message(Message.Type.CHAT_SEND, username, message));
+				chatMessageField.clear();
+				System.out.println(username + " sent: " + message);
+			}
+		});
+
+		VBox chatBox = new VBox(chatList, new HBox(chatMessageField, sendChatBtn));
+		mainContent = new HBox(chatBox);
+		mainContent.setVisible(false);
+
+		gameScreen = new VBox(10, gameLabel, cancelBtn, mainContent);
 		gameScreen.setVisible(false);
+	}
+
+	private void updateChatList(String msg) {
+		chatList.getItems().add(msg);
+		chatList.scrollTo(chatList.getItems().size() - 1);
 	}
 
 	private void showLobby() {
@@ -101,8 +124,8 @@ public class GuiClient extends Application {
 		gameScreen.setVisible(true);
 		gameLabel.setText(message);
 		cancelBtn.setVisible(waiting);
+		mainContent.setVisible(!waiting);
 	}
-
 
 	private void handleMessage(Message msg) {
 		System.out.println("Handling message: " + msg.getType());
@@ -131,6 +154,11 @@ public class GuiClient extends Application {
 				case GAME_START:
 					String opponent = msg.getString();
 					showGameScreen("Game started: " + username + " vs " + opponent, false);
+					break;
+				case CHAT_RECIEVE:
+					String sender = msg.getSender();
+					String chatMsg = msg.getString();
+					updateChatList(sender + ": " + chatMsg);
 					break;
 				default:
 					statusLabel.setText("Unhandled message: " + msg.getType());

@@ -1,9 +1,8 @@
-Server$Room.class
 GuiServer.class
+Room.class
 Server$1.class
 Server.class
 Message.class
-Type.class
 GuiServer$1.class
 Message$Type.class
 Server$ClientHandler.class

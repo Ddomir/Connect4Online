@@ -25,10 +25,11 @@ public class Server implements Runnable {
         }
     }
 
-    private class ClientHandler extends Thread {
+    public class ClientHandler extends Thread {
         private final Socket socket;
         private ObjectOutputStream out;
-        private String username;
+        String username;
+        private Room currentRoom;
 
         public ClientHandler(Socket socket) {
             this.socket = socket;
@@ -66,6 +67,15 @@ public class Server implements Runnable {
                 case DISCONNECT:
                     disconnect();
                     break;
+                case CHAT_SEND:
+                    if (currentRoom != null) {
+                        currentRoom.sendChatMessage(msg.getString(), this);
+                        System.out.println("Chat send: " + msg.getString());
+                    } else {
+                        send(new Message(Message.Type.CHAT_ERROR, "System", "Not in a room"));
+                    }
+                    break;
+
             }
         }
 
@@ -85,6 +95,7 @@ public class Server implements Runnable {
             String roomId = creator.username + "'s Room";
             Room room = new Room(roomId, creator);
             rooms.put(roomId, room);
+            creator.currentRoom = room;
             log("Room created: " + roomId);
             creator.send(new Message(Message.Type.ROOM_UPDATE, "System", "WAITING"));
             broadcastRoomList();
@@ -93,6 +104,8 @@ public class Server implements Runnable {
         private void joinRoom(String roomId) {
             Room room = rooms.get(roomId);
             if (room != null && room.join(this)) {
+                this.currentRoom = room;
+                room.host.currentRoom = room;
                 log(roomId + " - Game started");
                 rooms.remove(roomId);
                 broadcastRoomList();
@@ -110,7 +123,7 @@ public class Server implements Runnable {
             try { socket.close(); } catch (IOException ignored) {}
         }
 
-        private void send(Message msg) {
+        void send(Message msg) {
             try {
                 out.writeObject(msg);
                 out.flush();
@@ -121,30 +134,6 @@ public class Server implements Runnable {
 
         private void log(String message) {
             callback.accept(new Message(Message.Type.SERVER_LOG, "Server", message));
-        }
-    }
-
-    private class Room {
-        private final String id;
-        private final ClientHandler host;
-        private ClientHandler guest;
-
-        public Room(String id, ClientHandler host) {
-            this.id = id;
-            this.host = host;
-        }
-
-        public synchronized boolean join(ClientHandler client) {
-            if (guest == null && client != host) {
-                guest = client;
-                return true;
-            }
-            return false;
-        }
-
-        public void startGame() {
-            host.send(new Message(Message.Type.GAME_START, "System", guest.username));
-            guest.send(new Message(Message.Type.GAME_START, "System", host.username));
         }
     }
 

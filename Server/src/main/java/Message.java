@@ -10,9 +10,11 @@ public class Message implements Serializable {
         // Authentication
         AUTH_REQUEST, AUTH_SUCCESS, AUTH_ERROR,
         // Rooms
-        ROOM_CREATE, ROOM_LIST, ROOM_JOIN, ROOM_UPDATE,
+        ROOM_CREATE, ROOM_LIST, ROOM_JOIN, ROOM_UPDATE, ROOM_CANCEL,
         // Game
         GAME_START, GAME_MOVE, GAME_END,
+        // Chat
+        CHAT_SEND, CHAT_RECIEVE, CHAT_ERROR,
         // System
         PLAYER_UPDATE, DISCONNECT, SERVER_LOG
     }
