@@ -6,6 +6,7 @@
     -fx-background-size: cover;
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
+    -fx-padding: 0 50 0 50;
 }
 
 .label {
@@ -34,4 +35,9 @@
     -fx-background-radius: 4;
     -fx-border-color: transparent;
     -fx-padding: 8 20;
+}
+
+.button:hover {
+    -fx-scale-x: 1.01;
+    -fx-scale-y: 1.01;
 }

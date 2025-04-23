@@ -1,0 +1,51 @@
+#lobbyScreenRoot {
+    -fx-background-color: transparent;
+    -fx-padding: 30;
+    -fx-alignment: center;
+}
+
+#lobbyTitle {
+    -fx-font-family: 'Just Another Hand';
+    -fx-font-size: 36px;
+    -fx-text-fill: #ffffff;
+}
+
+#roomListScroll {
+    -fx-background-color: transparent;
+}
+
+#roomListScroll .viewport {
+    -fx-background-color: transparent;
+}
+
+#roomListContainer {
+    -fx-background-color: transparent;
+}
+
+.room-button {
+    -fx-background-color: #2c2c2c;
+    -fx-border-width: 4px;
+    -fx-border-color: #505050;
+    -fx-text-fill: white;
+    -fx-font-family: 'Gochi Hand';
+    -fx-font-size: 16px;
+    -fx-prompt-text-fill: derive(white, -30%);
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-pref-width: 200;
+    -fx-padding: 8 0 8 0;
+}
+
+.room-button:hover {
+    -fx-scale-x: 1.01;
+    -fx-scale-y: 1.01;
+}
+
+.room-button-selected {
+    -fx-background-color: #505050;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.4), 8, 0, 0, 2);
+    -fx-background-radius: 6;
+}
+

@@ -1,7 +1,11 @@
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -12,12 +16,12 @@ import java.util.Objects;
 public class GuiClient extends Application {
 	private Client client;
 	private String username;
-	private VBox lobbyScreen, gameScreen, loginScreenV;
-	private ListView<String> roomList, chatList;
+	private VBox lobbyScreenV, gameScreen, loginScreenV, roomListContainer;
+	private ListView<String> chatList;
 	private TextField chatMessageField;
 	private Label statusLabel, gameLabel;
 	private Button cancelBtn, sendChatBtn, exitBtn;
-	private HBox mainContent, loginScreen;
+	private HBox mainContent, loginScreen, lobbyScreen;
 	private GameBoard gameBoard;
 
 	public static void main(String[] args) {
@@ -31,10 +35,29 @@ public class GuiClient extends Application {
 		setupLobbyScreen();
 		setupGameScreen();
 
+		// Background Gif
+//		Image gif = new Image("/images/starsbg.gif");
+//		ImageView bgView = new ImageView(gif);
+//		bgView.setFitWidth(800);
+//		bgView.setFitHeight(600);
+//		bgView.setPreserveRatio(false);
+
+
 		StackPane root = new StackPane(loginScreen, lobbyScreen, gameScreen);
 		Scene scene = new Scene(root, 800, 600);
 		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/fonts.css")).toExternalForm());
 		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/loginScreen.css")).toExternalForm());
+		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/lobbyScreen.css")).toExternalForm());
+
+		stage.setOnCloseRequest(e -> {
+			if (client != null && username != null && gameLabel.getText().startsWith("Waiting")) {
+				client.send(new Message(Message.Type.ROOM_CANCEL, username));
+				client.send(new Message(Message.Type.DISCONNECT, username));
+			}
+			Platform.exit();
+			System.exit(0);
+		});
+
 		stage.setScene(scene);
 		stage.show();
 	}
@@ -67,23 +90,53 @@ public class GuiClient extends Application {
 	}
 
 	private void setupLobbyScreen() {
-		roomList = new ListView<>();
+		Label titleLabel = new Label("Online Rooms");
+		titleLabel.setId("lobbyTitle");
+
+		roomListContainer = new VBox(10);
+		roomListContainer.setPadding(new Insets(2));
+		roomListContainer.setId("roomListContainer");
+
+		ScrollPane scrollPane = new ScrollPane(roomListContainer);
+		scrollPane.setFitToWidth(true);
+		scrollPane.setId("roomListScroll");
+
 		Button createBtn = new Button("Create Room");
 		Button joinBtn = new Button("Join Room");
 		Button refreshBtn = new Button("Refresh");
 
 		createBtn.setOnAction(e -> client.createRoom());
+
 		joinBtn.setOnAction(e -> {
-			String selectedRoom = roomList.getSelectionModel().getSelectedItem();
-			if (selectedRoom != null) {
-				client.joinRoom(selectedRoom);
+			Button selectedBtn = (Button) roomListContainer.getChildren()
+					.stream()
+					.filter(n -> n.getStyleClass().contains("room-button-selected"))
+					.findFirst().orElse(null);
+			if (selectedBtn != null) {
+				client.joinRoom(selectedBtn.getText());
 			} else {
 				statusLabel.setText("Error: Select a room to join");
 			}
 		});
 		refreshBtn.setOnAction(e -> client.send(new Message(Message.Type.ROOM_LIST)));
 
-		lobbyScreen = new VBox(10, roomList, new HBox(10, createBtn, joinBtn, refreshBtn));
+		HBox buttonBox = new HBox(20, createBtn, joinBtn, refreshBtn);
+		buttonBox.setAlignment(Pos.CENTER);
+
+		VBox listAndButtons = new VBox(20, scrollPane, buttonBox);
+		listAndButtons.setAlignment(Pos.CENTER);
+		VBox.setVgrow(scrollPane, Priority.ALWAYS);
+
+		BorderPane content = new BorderPane();
+		content.setTop(titleLabel);
+		content.setCenter(listAndButtons);
+		BorderPane.setAlignment(titleLabel, Pos.TOP_LEFT);
+
+		lobbyScreen = new HBox(content);
+		HBox.setHgrow(content, Priority.ALWAYS);
+		content.setMaxWidth(Double.MAX_VALUE);
+
+		lobbyScreen.setId("lobbyScreenRoot");
 		lobbyScreen.setVisible(false);
 	}
 
@@ -135,8 +188,20 @@ public class GuiClient extends Application {
 	}
 
 	private void updateRoomList(List<String> rooms) {
-		roomList.getItems().setAll(rooms);
+		roomListContainer.getChildren().clear();
+		for (String room : rooms) {
+			Button roomBtn = new Button(room);
+			roomBtn.getStyleClass().add("room-button");
+			roomBtn.setMaxWidth(Double.MAX_VALUE);
+			roomBtn.setOnAction(e -> {
+				// Deselect all others
+				roomListContainer.getChildren().forEach(node -> node.getStyleClass().remove("room-button-selected"));
+				roomBtn.getStyleClass().add("room-button-selected");
+			});
+			roomListContainer.getChildren().add(roomBtn);
+		}
 	}
+
 
 	private void showGameScreen(String message, boolean waiting) {
 		loginScreen.setVisible(false);
