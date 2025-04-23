@@ -1,0 +1,17 @@
+#loginScreenRoot {
+    -fx-alignment: center;
+    -fx-spacing: 20;
+    -fx-padding: 40;
+}
+
+#titleRed {
+    -fx-font-family: 'Gochi Hand';
+    -fx-font-size: 128px;
+    -fx-text-fill: #f16969;
+}
+
+#titleBlue {
+    -fx-font-family: 'Gochi Hand';
+    -fx-font-size: 128px;
+    -fx-text-fill: #71A0D9;
+}

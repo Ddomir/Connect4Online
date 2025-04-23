@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap');
+
+.root {
+    -fx-background-image: url("/images/starsbg.png");
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.label {
+    -fx-font-family: 'Just Another Hand';
+}

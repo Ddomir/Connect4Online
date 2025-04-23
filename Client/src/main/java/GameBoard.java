@@ -18,25 +18,21 @@ public class GameBoard extends GridPane {
         this.client = client;
         this.username = username;
 
-        // Create columns
         for (int col = 0; col < COLS; col++) {
             VBox column = new VBox();
             column.setMinWidth(60);
             column.setStyle("-fx-background-color: transparent;");
 
-            // Circles for game board
             for (int row = 0; row < ROWS; row++) {
                 Circle circle = new Circle(30, Color.WHITE);
                 circles[row][col] = circle;
                 column.getChildren().add(circle);
             }
 
-            // Hover indicator (at bottom)
             Rectangle indicator = new Rectangle(60, 10, Color.TRANSPARENT);
             indicators[col] = indicator;
             column.getChildren().add(indicator);
 
-            // Click handler for entire column
             final int finalCol = col;
             column.setOnMouseClicked(e -> {
                 if (!gameOver && isValidMove(finalCol)) {
@@ -44,7 +40,6 @@ public class GameBoard extends GridPane {
                 }
             });
 
-            // Hover handlers
             column.setOnMouseEntered(e -> {
                 if (!gameOver && isValidMove(finalCol)) {
                     indicator.setFill(playerColor.deriveColor(1, 1, 1, 0.5)); // Semi-transparent

@@ -7,18 +7,17 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 import java.util.List;
+import java.util.Objects;
 
 public class GuiClient extends Application {
 	private Client client;
 	private String username;
-	private VBox loginScreen;
-	private VBox lobbyScreen;
-	private VBox gameScreen;
+	private VBox lobbyScreen, gameScreen, loginScreenV;
 	private ListView<String> roomList, chatList;
-	private TextField roomField, chatMessageField;
+	private TextField chatMessageField;
 	private Label statusLabel, gameLabel;
 	private Button cancelBtn, sendChatBtn, exitBtn;
-	private HBox mainContent;
+	private HBox mainContent, loginScreen;
 	private GameBoard gameBoard;
 
 	public static void main(String[] args) {
@@ -33,7 +32,10 @@ public class GuiClient extends Application {
 		setupGameScreen();
 
 		StackPane root = new StackPane(loginScreen, lobbyScreen, gameScreen);
-		stage.setScene(new Scene(root, 800, 400));
+		Scene scene = new Scene(root, 800, 600);
+		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/fonts.css")).toExternalForm());
+		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/loginScreen.css")).toExternalForm());
+		stage.setScene(scene);
 		stage.show();
 	}
 
@@ -43,7 +45,13 @@ public class GuiClient extends Application {
 	}
 
 	private void setupLoginScreen() {
+		Label loginTitle1 = new Label("Connect ");
+		loginTitle1.setId("titleRed");
+		Label loginTitle2 = new Label("4");
+		loginTitle2.setId("titleBlue");
+		HBox titleBox = new HBox(loginTitle1, loginTitle2);
 		TextField userField = new TextField();
+		userField.setPromptText("Username");
 		Button loginBtn = new Button("Login");
 		statusLabel = new Label();
 
@@ -52,7 +60,10 @@ public class GuiClient extends Application {
 			client.authenticate(username);
 		});
 
-		loginScreen = new VBox(10, userField, loginBtn, statusLabel);
+		loginScreenV = new VBox(10, titleBox, userField, loginBtn, statusLabel);
+		loginScreenV.setStyle("-fx-alignment: center;");
+		loginScreen = new HBox(loginScreenV);
+		loginScreen.setId("loginScreenRoot");
 	}
 
 	private void setupLobbyScreen() {

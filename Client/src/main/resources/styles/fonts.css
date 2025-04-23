@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap');
+
+.root {
+    -fx-background-image: url("/images/starsbg.png");
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.label {
+    -fx-font-family: 'Just Another Hand';
+}
+
+.text-field {
+    -fx-background-color: #2c2c2c;
+    -fx-border-width: 4px;
+    -fx-border-color: #505050;
+    -fx-text-fill: white;
+    -fx-font-family: 'Gochi Hand';
+    -fx-font-size: 16px;
+    -fx-prompt-text-fill: derive(white, -30%);
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-pref-width: 200;
+    -fx-padding: 8 12;
+}
+
+.button {
+    -fx-background-color: #505050;
+    -fx-text-fill: lightgray;
+    -fx-font-family: 'Gochi Hand';
+    -fx-font-size: 16px;
+    -fx-background-radius: 4;
+    -fx-border-color: transparent;
+    -fx-padding: 8 20;
+}
