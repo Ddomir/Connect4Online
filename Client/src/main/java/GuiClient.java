@@ -23,6 +23,7 @@ public class GuiClient extends Application {
 	private Button cancelBtn, sendChatBtn, exitBtn;
 	private HBox mainContent, loginScreen, lobbyScreen;
 	private GameBoard gameBoard;
+	private BorderPane waitPage;
 
 	public static void main(String[] args) {
 		launch(args);
@@ -48,6 +49,7 @@ public class GuiClient extends Application {
 		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/fonts.css")).toExternalForm());
 		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/loginScreen.css")).toExternalForm());
 		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/lobbyScreen.css")).toExternalForm());
+		scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/styles/gameScreen.css")).toExternalForm());
 
 		stage.setOnCloseRequest(e -> {
 			if (client != null && username != null && gameLabel.getText().startsWith("Waiting")) {
@@ -141,21 +143,36 @@ public class GuiClient extends Application {
 	}
 
 	private void setupGameScreen() {
-		gameLabel = new Label("Waiting");
+		gameLabel = new Label("Waiting for opponent to join...");
+		gameLabel.setId("waitLabel");
 		cancelBtn = new Button("Cancel");
 		cancelBtn.setOnAction(e -> {
 			client.send(new Message(Message.Type.ROOM_CANCEL, username));
 		});
 
-		gameBoard = new GameBoard(client, username);
-		exitBtn = new Button("Exit");
-		exitBtn.setVisible(false);
-		exitBtn.setOnAction(e -> showLobby());
+		VBox waitContent = new VBox(20, gameLabel, cancelBtn);
+		waitContent.setAlignment(Pos.CENTER);
+		waitContent.setId("waitPageRoot");
 
+		waitPage = new BorderPane(waitContent);
+		waitPage.setPrefSize(800, 600);
+		waitPage.setId("waitPage");
+
+		gameBoard = new GameBoard(client, username);
 		mainContent = new HBox(createChatBox(), gameBoard);
 		mainContent.setVisible(false);
 
-		gameScreen = new VBox(10, gameLabel, cancelBtn, mainContent, exitBtn);
+		exitBtn = new Button("Exit");
+		exitBtn.setVisible(false);
+		exitBtn.setOnAction(e -> {
+			showLobby();
+			exitBtn.setVisible(false);
+		});
+
+		StackPane gameStateStack = new StackPane(waitPage, mainContent);
+
+		gameScreen = new VBox(10, gameStateStack, exitBtn);
+		gameScreen.setAlignment(Pos.CENTER);
 		gameScreen.setVisible(false);
 	}
 
@@ -207,8 +224,7 @@ public class GuiClient extends Application {
 		loginScreen.setVisible(false);
 		lobbyScreen.setVisible(false);
 		gameScreen.setVisible(true);
-		gameLabel.setText(message);
-		cancelBtn.setVisible(waiting);
+		waitPage.setVisible(waiting);
 		mainContent.setVisible(!waiting);
 	}
 
