@@ -10,26 +10,22 @@ import javafx.scene.shape.Shape;
 public class GameBoard extends VBox {
     private static final int ROWS = 6;
     private static final int COLS = 7;
-    private Rectangle[][] holes = new Rectangle[ROWS][COLS];
-    private Rectangle[] indicators = new Rectangle[COLS];
-    private Client client;
-    private String username;
+    private final Rectangle[][] holes = new Rectangle[ROWS][COLS];
+    private final Rectangle[] indicators = new Rectangle[COLS];
+    private final String username;
     private boolean gameOver = false;
     private Color playerColor = Color.web("#f16969");
     private Color opponentColor = Color.web("#71A0D9");
-    private GridPane holeGrid;
     private Label turnLabel;
-    private Pane boardPane;
 
     public GameBoard(Client client, String username) {
-        this.client = client;
         this.username = username;
 
         turnLabel = new Label("Your turn");
         turnLabel.setId("turnLabel");
         turnLabel.setTextFill(playerColor);
 
-        boardPane = new Pane();
+        Pane boardPane = new Pane();
 
         double boardWidth = COLS * 50 + (COLS - 1) * 10 + 30;
         double boardHeight = ROWS * 40 + (ROWS - 1) * 10 + 30 + 8 + 8;
@@ -50,7 +46,7 @@ public class GameBoard extends VBox {
         }
         board.setFill(Color.web("#2c2c2c"));
 
-        holeGrid = new GridPane();
+        GridPane holeGrid = new GridPane();
         holeGrid.setHgap(10);
         holeGrid.setVgap(10);
         holeGrid.setPadding(new javafx.geometry.Insets(15));

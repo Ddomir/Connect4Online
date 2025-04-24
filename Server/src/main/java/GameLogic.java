@@ -1,7 +1,7 @@
 public class GameLogic {
     private static final int ROWS = 6;
     private static final int COLS = 7;
-    private char[][] board = new char[ROWS][COLS];
+    private final char[][] board = new char[ROWS][COLS];
     private char currentPlayer = 'R';
 
     public GameLogic() {
