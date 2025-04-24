@@ -3,3 +3,33 @@
     -fx-font-family: 'Just Another Hand';
     -fx-font-size: 64px;
 }
+
+#gameBoard {
+    -fx-background-color: transparent;
+    -fx-border-width: 2px;
+}
+
+#turnLabel {
+    -fx-font-family: 'Just Another Hand';
+    -fx-font-size: 64px;
+    -fx-stroke: white;
+    -fx-stroke-width: 0.5;
+    -fx-alignment: center;
+}
+
+#chatBox {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+    -fx-border-radius: 8;
+    -fx-font-size: 20px;
+}
+
+#chatList {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-family: 'Gochi Hand';
+    -fx-font-size: 20px;
+}

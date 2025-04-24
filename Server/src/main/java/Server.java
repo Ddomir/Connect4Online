@@ -60,6 +60,7 @@ public class Server implements Runnable {
                     break;
                 case ROOM_JOIN:
                     joinRoom(msg.getString());
+                    log(msg.getSender() + "joined room: " + msg.getString());
                     break;
                 case ROOM_LIST:
                     List<String> roomList = new ArrayList<>(rooms.keySet());
@@ -89,7 +90,7 @@ public class Server implements Runnable {
                 case CHAT_SEND:
                     if (currentRoom != null) {
                         currentRoom.sendChatMessage(msg.getString(), this);
-                        System.out.println("Chat send: " + msg.getString());
+                        log("Chat send: " + msg.getString());
                     } else {
                         send(new Message(Message.Type.CHAT_ERROR, "System", "Not in a room"));
                     }
